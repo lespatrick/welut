@@ -4,10 +4,6 @@ node_modules
 /dist-electron
 /release
 
-# LUTs (Private)
-resources/luts/*
-!resources/luts/.gitkeep
-
 # Logs
 logs
 *.log
