@@ -29,9 +29,6 @@
       "zip"
     ]
   },
-  "dmg": {
-    "license": "LICENSE_ALL.txt"
-  },
   "win": {
     "target": [
       {
