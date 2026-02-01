@@ -6,12 +6,16 @@
   "asar": true,
   "compression": "maximum",
   "directories": {
-    "output": "dist",
+    "output": "release",
     "buildResources": "resources"
   },
   "files": [
     "dist-electron",
-    "dist"
+    "dist",
+    "!dist/mac-arm64",
+    "!dist/win-unpacked",
+    "!dist/builder-debug.yml",
+    "!dist/builder-effective-config.yaml"
   ],
   "extraResources": [
     {

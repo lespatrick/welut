@@ -50,9 +50,9 @@ jobs:
         with:
           name: Welut-Windows-Installer
           path: |
-            dist/*.exe
-            dist/*.yml
-            dist/*.blockmap
+            release/*.exe
+            release/*.yml
+            release/*.blockmap
 
       - name: Upload Build Artifacts (macOS)
         if: matrix.os == 'macos-latest'
@@ -60,10 +60,10 @@ jobs:
         with:
           name: Welut-MacOS-Installer
           path: |
-            dist/*.dmg
-            dist/*.zip
-            dist/*.yml
-            dist/*.blockmap
+            release/*.dmg
+            release/*.zip
+            release/*.yml
+            release/*.blockmap
 
   release:
     name: Create Release
