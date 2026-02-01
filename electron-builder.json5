@@ -27,7 +27,8 @@
     "target": [
       "dmg",
       "zip"
-    ]
+    ],
+    "license": "LICENSE_ALL.txt"
   },
   "win": {
     "target": [
@@ -43,7 +44,8 @@
     "oneClick": false,
     "perMachine": false,
     "allowToChangeInstallationDirectory": true,
-    "deleteAppDataOnUninstall": false
+    "deleteAppDataOnUninstall": false,
+    "license": "LICENSE_ALL.txt"
   },
   "linux": {
     "target": [
