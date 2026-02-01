@@ -1,4 +1,5 @@
-import { app, BrowserWindow, ipcMain, dialog } from 'electron'
+import { app, BrowserWindow, ipcMain, dialog, Menu } from 'electron'
+import fs from 'node:fs'
 
 import { fileURLToPath } from 'node:url'
 import path from 'node:path'
@@ -41,6 +42,111 @@ function createWindow() {
     // win.loadFile('dist/index.html')
     win.loadFile(path.join(RENDERER_DIST, 'index.html'))
   }
+
+  createMenu();
+}
+
+function showLicenseDialog() {
+  const licensePath = path.join(process.env.APP_ROOT, 'LICENSE_ALL.txt');
+  let licenseText = 'License information not available.';
+  try {
+    licenseText = fs.readFileSync(licensePath, 'utf-8');
+  } catch (err) {
+    console.error('Failed to read license file', err);
+  }
+
+  dialog.showMessageBox({
+    type: 'info',
+    title: 'License Information',
+    message: 'Welut - License Information',
+    detail: licenseText,
+    buttons: ['OK']
+  });
+}
+
+function createMenu() {
+  const template: Electron.MenuItemConstructorOptions[] = [
+    ...(process.platform === 'darwin' ? [{
+      label: app.name,
+      submenu: [
+        { role: 'about' as const },
+        { type: 'separator' as const },
+        { label: 'License Information', click: showLicenseDialog },
+        { type: 'separator' as const },
+        { role: 'services' as const },
+        { type: 'separator' as const },
+        { role: 'hide' as const },
+        { role: 'hideOthers' as const },
+        { role: 'unhide' as const },
+        { type: 'separator' as const },
+        { role: 'quit' as const }
+      ]
+    }] : []),
+    {
+      label: 'File',
+      submenu: [
+        { role: 'quit' as const }
+      ]
+    },
+    {
+      label: 'Edit',
+      submenu: [
+        { role: 'undo' as const },
+        { role: 'redo' as const },
+        { type: 'separator' as const },
+        { role: 'cut' as const },
+        { role: 'copy' as const },
+        { role: 'paste' as const }
+      ]
+    },
+    {
+      label: 'View',
+      submenu: [
+        { role: 'reload' as const },
+        { role: 'forceReload' as const },
+        { role: 'toggleDevTools' as const },
+        { type: 'separator' as const },
+        { role: 'resetZoom' as const },
+        { role: 'zoomIn' as const },
+        { role: 'zoomOut' as const },
+        { type: 'separator' as const },
+        { role: 'togglefullscreen' as const }
+      ]
+    },
+    {
+      label: 'Window',
+      submenu: [
+        { role: 'minimize' as const },
+        { role: 'zoom' as const },
+        ...(process.platform === 'darwin' ? [
+          { type: 'separator' as const },
+          { role: 'front' as const },
+          { type: 'separator' as const },
+          { role: 'window' as const }
+        ] : [
+          { role: 'close' as const }
+        ])
+      ]
+    },
+    {
+      role: 'help',
+      submenu: [
+        {
+          label: 'Learn More',
+          click: async () => {
+            const { shell } = await import('electron')
+            await shell.openExternal('https://electronjs.org')
+          }
+        },
+        ...(process.platform !== 'darwin' ? [
+          { label: 'License Information', click: showLicenseDialog }
+        ] : [])
+      ]
+    }
+  ];
+
+  const menu = Menu.buildFromTemplate(template);
+  Menu.setApplicationMenu(menu);
 }
 
 app.on('window-all-closed', () => {
