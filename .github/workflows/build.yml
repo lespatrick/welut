@@ -1,4 +1,4 @@
-name: Build Windows Application
+name: Build Application
 
 on:
   push:
@@ -13,7 +13,11 @@ on:
 
 jobs:
   build:
-    runs-on: windows-latest
+    name: Build ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [windows-latest, macos-latest]
 
     steps:
       - name: Checkout Repository
@@ -28,12 +32,20 @@ jobs:
       - name: Install Dependencies
         run: npm install
 
-      - name: Build and Package
+      - name: Build and Package (Windows)
+        if: matrix.os == 'windows-latest'
         run: npm run build:win
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Upload Build Artifacts
+      - name: Build and Package (macOS)
+        if: matrix.os == 'macos-latest'
+        run: npm run build:mac:universal
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload Build Artifacts (Windows)
+        if: matrix.os == 'windows-latest'
         uses: actions/upload-artifact@v4
         with:
           name: Welut-Windows-Installer
@@ -42,15 +54,45 @@ jobs:
             dist/*.yml
             dist/*.blockmap
 
+      - name: Upload Build Artifacts (macOS)
+        if: matrix.os == 'macos-latest'
+        uses: actions/upload-artifact@v4
+        with:
+          name: Welut-MacOS-Installer
+          path: |
+            dist/*.dmg
+            dist/*.zip
+            dist/*.yml
+            dist/*.blockmap
+
+  release:
+    name: Create Release
+    needs: build
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
       - name: Get version from package.json
         id: get_version
-        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
         run: |
-          $version = (Get-Content package.json | ConvertFrom-Json).version
-          echo "version=$version" >> $env:GITHUB_OUTPUT
+          VERSION=$(node -p "require('./package.json').version")
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Download Windows Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: Welut-Windows-Installer
+          path: release-artifacts
+
+      - name: Download macOS Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: Welut-MacOS-Installer
+          path: release-artifacts
 
       - name: Create Release
-        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
         uses: softprops/action-gh-release@v1
         with:
           tag_name: v${{ steps.get_version.outputs.version }}
@@ -58,6 +100,8 @@ jobs:
           draft: false
           prerelease: false
           files: |
-            dist/*.exe
+            release-artifacts/*.exe
+            release-artifacts/*.dmg
+            release-artifacts/*.zip
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
