@@ -27,6 +27,7 @@ jobs:
 
       - name: Get next version
         id: get_version
+        continueOnError: true
         run: |
           VERSION=$(node -p "require('./package.json').version")
           echo "Current version: $VERSION"
