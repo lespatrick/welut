@@ -94,7 +94,12 @@ jobs:
         if: matrix.os == 'macos-latest'
         run: |
           cd build/macos/Build/Products/Release
-          zip -r ../../../../welut-macos.zip welut.app
+          zip -r ../../../../../welut-macos.zip welut.app
+          cd ../../../../../
+          ls -lh *.zip
+
+      - name: List files (Debug)
+        run: ls -R *.zip || echo "No zip files found"
 
       - name: Upload Build Artifacts
         uses: actions/upload-artifact@v4
