@@ -29,18 +29,29 @@ jobs:
         id: get_version
         continue-on-error: true
         run: |
-          VERSION=$(node -p "require('./package.json').version")
+          # Get version from pubspec.yaml (e.g., 1.0.0+1)
+          FULL_VERSION=$(grep '^version: ' pubspec.yaml | sed 's/version: //')
+          # Extract the base version without the + build number
+          VERSION=$(echo $FULL_VERSION | cut -d '+' -f 1)
+          
           echo "Current version: $VERSION"
           if git tag -l "v$VERSION"; then
             echo "Tag v$VERSION exists, bumping patch..."
-            npm version patch --no-git-tag-version
-            VERSION=$(node -p "require('./package.json').version")
-            echo "New version: $VERSION"
+            # Simple version bump logic
+            IFS='.' read -r major minor patch <<< "$VERSION"
+            patch=$((patch + 1))
+            NEW_VERSION="$major.$minor.$patch"
+            echo "New version: $NEW_VERSION"
+            
+            # Update pubspec.yaml
+            sed -i "s/^version: .*/version: $NEW_VERSION+1/" pubspec.yaml
+            
             git config user.name "github-actions[bot]"
             git config user.email "github-actions[bot]@users.noreply.github.com"
-            git add package.json package-lock.json
-            git commit -m "chore: bump version to v$VERSION [skip ci]"
+            git add pubspec.yaml
+            git commit -m "chore: bump version to v$NEW_VERSION [skip ci]"
             git push
+            VERSION=$NEW_VERSION
           else
             echo "Tag v$VERSION does not exist, no bump needed."
           fi
@@ -57,50 +68,40 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Set version
-        run: npm version ${{ needs.prepare.outputs.version }} --no-git-tag-version
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
         with:
-          node-version: '20'
-          cache: 'npm'
+          flutter-version: '3.24.5'
+          channel: 'stable'
 
       - name: Install Dependencies
-        run: npm install
+        run: flutter pub get
 
-      - name: Build and Package (Windows)
-        if: matrix.os == 'windows-latest'
-        run: npm run build:win
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Build and Package (macOS)
+      - name: Build MacOS
         if: matrix.os == 'macos-latest'
-        run: npm run build:mac:universal
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: flutter build macos --release
 
-      - name: Upload Build Artifacts (Windows)
+      - name: Build Windows
         if: matrix.os == 'windows-latest'
+        run: flutter build windows --release
+
+      - name: Package artifacts (Windows)
+        if: matrix.os == 'windows-latest'
+        run: |
+          Compress-Archive -Path build\windows\x64\runner\Release\* -DestinationPath welut-windows.zip
+
+      - name: Package artifacts (macOS)
+        if: matrix.os == 'macos-latest'
+        run: |
+          cd build/macos/Build/Products/Release
+          zip -r ../../../../welut-macos.zip welut.app
+
+      - name: Upload Build Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: Welut-Windows-Installer
+          name: welut-${{ matrix.os }}
           path: |
-            release/*.exe
-            release/*.yml
-            release/*.blockmap
-
-      - name: Upload Build Artifacts (macOS)
-        if: matrix.os == 'macos-latest'
-        uses: actions/upload-artifact@v4
-        with:
-          name: Welut-MacOS-Installer
-          path: |
-            release/*.dmg
-            release/*.zip
-            release/*.yml
-            release/*.blockmap
+            *.zip
 
   release:
     name: Create Release
@@ -111,17 +112,11 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Download Windows Artifacts
+      - name: Download Artifacts
         uses: actions/download-artifact@v4
         with:
-          name: Welut-Windows-Installer
           path: release-artifacts
-
-      - name: Download macOS Artifacts
-        uses: actions/download-artifact@v4
-        with:
-          name: Welut-MacOS-Installer
-          path: release-artifacts
+          merge-multiple: true
 
       - name: Create Release
         uses: softprops/action-gh-release@v1
@@ -131,8 +126,6 @@ jobs:
           draft: false
           prerelease: false
           files: |
-            release-artifacts/*.exe
-            release-artifacts/*.dmg
             release-artifacts/*.zip
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
