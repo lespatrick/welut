@@ -87,9 +87,16 @@ class LutService {
       throw UnsupportedError('RAW conversion currently supported on macOS only');
     }
 
+    // Use a deterministic temp filename based on the source path to avoid multiple conversions
+    final hash = inputPath.hashCode.toUnsigned(20).toString();
     final tempDir = Directory.systemTemp;
-    final tempPath = p.join(tempDir.path, 'welut_${DateTime.now().millisecondsSinceEpoch}.jpg');
+    final tempPath = p.join(tempDir.path, 'welut_preview_$hash.jpg');
 
+    if (await File(tempPath).exists()) {
+      return File(tempPath);
+    }
+
+    print('RAW Conversion: Converting $inputPath to $tempPath');
     final result = await Process.run('sips', [
       '-s', 'format', 'jpeg',
       inputPath,
@@ -97,10 +104,19 @@ class LutService {
     ]);
 
     if (result.exitCode != 0) {
+      print('RAW Conversion: Failed with exit code ${result.exitCode}');
+      print('RAW Conversion: Error output: ${result.stderr}');
       throw Exception('sips conversion failed: ${result.stderr}');
     }
 
-    return File(tempPath);
+    final outputFile = File(tempPath);
+    if (!await outputFile.exists()) {
+      print('RAW Conversion: Output file does not exist after sips!');
+      throw Exception('sips failed to produce output file');
+    }
+    
+    print('RAW Conversion: Success! Output size: ${await outputFile.length()} bytes');
+    return outputFile;
   }
 }
 

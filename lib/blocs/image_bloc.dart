@@ -39,12 +39,25 @@ class SelectActiveImage extends ImageEvent {
   List<Object?> get props => [image];
 }
 
-class ProcessImages extends ImageEvent {}
+class ProcessImages extends ImageEvent {
+  final String? outputDirectory;
+  ProcessImages({this.outputDirectory});
+  @override
+  List<Object?> get props => [outputDirectory];
+}
+
+class SetOutputDirectory extends ImageEvent {
+  final String? directory;
+  SetOutputDirectory(this.directory);
+  @override
+  List<Object?> get props => [directory];
+}
 
 class ImageState extends Equatable {
   final List<ImageItem> images;
   final ImageItem? activeImage;
   final LutItem? selectedLut;
+  final String? outputDirectory;
   final bool isProcessing;
   final List<String> status;
 
@@ -52,6 +65,7 @@ class ImageState extends Equatable {
     this.images = const [],
     this.activeImage,
     this.selectedLut,
+    this.outputDirectory,
     this.isProcessing = false,
     this.status = const [],
   });
@@ -62,6 +76,8 @@ class ImageState extends Equatable {
     bool clearActiveImage = false,
     LutItem? selectedLut,
     bool clearSelectedLut = false,
+    String? outputDirectory,
+    bool clearOutputDirectory = false,
     bool? isProcessing,
     List<String>? status,
   }) {
@@ -69,13 +85,14 @@ class ImageState extends Equatable {
       images: images ?? this.images,
       activeImage: clearActiveImage ? null : (activeImage ?? this.activeImage),
       selectedLut: clearSelectedLut ? null : (selectedLut ?? this.selectedLut),
+      outputDirectory: clearOutputDirectory ? null : (outputDirectory ?? this.outputDirectory),
       isProcessing: isProcessing ?? this.isProcessing,
       status: status ?? this.status,
     );
   }
 
   @override
-  List<Object?> get props => [images, activeImage, selectedLut, isProcessing, status];
+  List<Object?> get props => [images, activeImage, selectedLut, outputDirectory, isProcessing, status];
 }
 
 class ImageBloc extends Bloc<ImageEvent, ImageState> {
@@ -121,10 +138,24 @@ class ImageBloc extends Bloc<ImageEvent, ImageState> {
       emit(state.copyWith(activeImage: event.image));
     });
 
+    on<SetOutputDirectory>((event, emit) {
+      emit(state.copyWith(
+        outputDirectory: event.directory,
+        clearOutputDirectory: event.directory == null,
+      ));
+    });
+
     on<ProcessImages>((event, emit) async {
       if (state.selectedLut == null || state.images.isEmpty) return;
+      
+      final outputDir = event.outputDirectory ?? state.outputDirectory;
+      if (outputDir == null) return; // Should be handled by UI picker before firing
 
-      emit(state.copyWith(isProcessing: true, status: ['Starting processing (GPU Accelerated)...']));
+      emit(state.copyWith(
+        isProcessing: true, 
+        status: ['Starting processing (GPU Accelerated)...'],
+        outputDirectory: outputDir,
+      ));
 
       final selectedLut = state.selectedLut!;
       
@@ -133,12 +164,13 @@ class ImageBloc extends Bloc<ImageEvent, ImageState> {
           try {
             File source = File(imgItem.path);
             final ext = p.extension(imgItem.path).toLowerCase();
-            if (['.orf', '.cr2', '.nef', '.arw', '.dng'].contains(ext)) {
+            final rawExtensions = {'.orf', '.cr2', '.nef', '.arw', '.dng', '.raf', '.rw2', '.pef', '.srw', '.kdc', '.mrw', '.dcr'};
+            if (rawExtensions.contains(ext)) {
               source = await LutService.convertRawToJpg(imgItem.path);
             }
 
             final outputPath = p.join(
-              p.dirname(imgItem.path), 
+              outputDir, 
               '${p.basenameWithoutExtension(imgItem.path)}_welut.jpg'
             );
             
@@ -148,8 +180,6 @@ class ImageBloc extends Bloc<ImageEvent, ImageState> {
               outputPath: outputPath,
             );
 
-            // Using add-style status updates might be tricky with parallel, 
-            // but we can at least log completion.
             debugPrint('✅ Processed: ${p.basename(imgItem.path)}');
           } catch (e) {
             debugPrint('❌ Error processing ${imgItem.path}: $e');
@@ -160,7 +190,7 @@ class ImageBloc extends Bloc<ImageEvent, ImageState> {
         await Future.wait(processingTasks);
         
         emit(state.copyWith(
-          status: [...state.status, 'Done! GPU processing complete for all images.'],
+          status: [...state.status, 'Done! GPU processing complete. Files saved to: $outputDir'],
           isProcessing: false,
         ));
       } catch (e) {
