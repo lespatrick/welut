@@ -31,7 +31,7 @@ class FileCarousel extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
-                      'Selected Files (${state.images.length})',
+                      'Selected Files (${state.stagedImages.length})',
                       style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, letterSpacing: 1),
                     ),
                     TextButton.icon(
@@ -68,10 +68,10 @@ class FileCarousel extends StatelessWidget {
                   child: ListView.builder(
                     scrollDirection: Axis.horizontal,
                     padding: const EdgeInsets.symmetric(horizontal: 16),
-                    itemCount: state.images.length,
+                    itemCount: state.stagedImages.length,
                     itemBuilder: (context, index) {
-                      final img = state.images[index];
-                      final isActive = state.activeImage?.path == img.path;
+                      final img = state.stagedImages[index];
+                      final isActive = state.activeStagedImage?.path == img.path;
                       return _ThumbnailAction(img: img, isActive: isActive);
                     },
                   ),
@@ -96,7 +96,7 @@ class _ThumbnailAction extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 8.0),
       child: InkWell(
-        onTap: () => context.read<ImageBloc>().add(SelectActiveImage(img)),
+        onTap: () => context.read<ImageBloc>().add(SelectStagedImage(img)),
         borderRadius: BorderRadius.circular(12),
         child: Container(
           width: 100,
@@ -125,7 +125,7 @@ class _ThumbnailAction extends StatelessWidget {
                 right: 4,
                 top: 4,
                 child: GestureDetector(
-                  onTap: () => context.read<ImageBloc>().add(RemoveFile(img.path)),
+                  onTap: () => context.read<ImageBloc>().add(ToggleSelection(img.path)),
                   child: Container(
                     padding: const EdgeInsets.all(4),
                     decoration: const BoxDecoration(
@@ -140,11 +140,24 @@ class _ThumbnailAction extends StatelessWidget {
                 left: 4,
                 bottom: 4,
                 right: 4,
-                child: Text(
-                  p.basename(img.path),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(fontSize: 9, color: Colors.white, backgroundColor: Colors.black45),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (img.rating > 0)
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: List.generate(
+                          img.rating,
+                          (_) => const Icon(Icons.star, size: 8, color: Colors.amber),
+                        ),
+                      ),
+                    Text(
+                      p.basename(img.path),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(fontSize: 9, color: Colors.white, backgroundColor: Colors.black45),
+                    ),
+                  ],
                 ),
               ),
             ],

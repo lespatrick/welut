@@ -5,6 +5,9 @@ import 'lut_library.dart';
 import 'image_preview_area.dart';
 import 'file_carousel.dart';
 import 'processing_overlay.dart';
+import 'browser_view.dart';
+import 'export_dialog.dart';
+import '../models/models.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:path/path.dart' as p;
 
@@ -13,40 +16,79 @@ class MainLayout extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: Stack(
-        children: [
-          Row(
-            children: [
-              // Sidebar: LUT Library
-              const SizedBox(
-                width: 280,
-                child: LutLibrary(),
+    return DefaultTabController(
+      length: 2,
+      child: Scaffold(
+        appBar: PreferredSize(
+          preferredSize: const Size.fromHeight(48),
+          child: Container(
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.surface,
+              border: Border(bottom: BorderSide(color: Colors.white.withOpacity(0.05))),
+            ),
+            child: const SafeArea(
+              child: TabBar(
+                isScrollable: true,
+                indicatorColor: Color(0xFF646CFF),
+                indicatorWeight: 3,
+                labelStyle: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1.2, fontSize: 12),
+                unselectedLabelColor: Colors.grey,
+                tabs: [
+                  Tab(text: 'BROWSER'),
+                  Tab(text: 'LUT MODE'),
+                ],
               ),
-              // Main content: Preview and Carousel
-              Expanded(
-                child: Container(
-                  color: Theme.of(context).scaffoldBackgroundColor,
-                  child: Column(
-                    children: [
-                      // Preview Area
-                      const Expanded(
-                        child: ImagePreviewArea(),
-                      ),
-                      // Carousel Area
-                      const FileCarousel(),
-                      // Bottom Actions
-                      const _ActionBar(),
-                    ],
-                  ),
-                ),
-              ),
-            ],
+            ),
           ),
-          // Processing Overlay
-          const ProcessingOverlay(),
-        ],
+        ),
+        body: Stack(
+          children: [
+            const TabBarView(
+              children: [
+                BrowserView(),
+                _LutModeLayout(),
+              ],
+            ),
+            // Processing Overlay
+            const ProcessingOverlay(),
+          ],
+        ),
       ),
+    );
+  }
+}
+
+class _LutModeLayout extends StatelessWidget {
+  const _LutModeLayout();
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        // Sidebar: LUT Library
+        const SizedBox(
+          width: 280,
+          child: LutLibrary(),
+        ),
+        // Main content: Preview and Carousel
+        Expanded(
+          child: Container(
+            color: Theme.of(context).scaffoldBackgroundColor,
+            child: const Column(
+              children: [
+                // Preview Area
+                Expanded(
+                  child: ImagePreviewArea(),
+                ),
+                // Carousel Area
+                FileCarousel(),
+                // Bottom Actions
+                _ActionBar(),
+              ],
+            ),
+          ),
+        ),
+      ],
     );
   }
 }
@@ -58,7 +100,8 @@ class _ActionBar extends StatelessWidget {
   Widget build(BuildContext context) {
     return BlocBuilder<ImageBloc, ImageState>(
       builder: (context, state) {
-        final canProcess = state.images.isNotEmpty && state.selectedLut != null && !state.isProcessing;
+        final stagedCount = state.stagedImages.length;
+        final canProcess = stagedCount > 0 && state.selectedLut != null && !state.isProcessing;
 
         return Container(
           padding: const EdgeInsets.all(20),
@@ -122,14 +165,15 @@ class _ActionBar extends StatelessWidget {
               const SizedBox(width: 24),
               ElevatedButton(
                 onPressed: canProcess ? () async {
-                  String? path = state.outputDirectory;
-                  if (path == null) {
-                    path = await FilePicker.platform.getDirectoryPath();
-                    if (path != null && context.mounted) {
-                      context.read<ImageBloc>().add(ProcessImages(outputDirectory: path));
-                    }
-                  } else {
-                    context.read<ImageBloc>().add(ProcessImages());
+                  final count = state.stagedImages.length;
+                  
+                  final options = await showDialog<ExportOptions>(
+                    context: context,
+                    builder: (context) => ExportDialog(imageCount: count),
+                  );
+
+                  if (options != null && context.mounted) {
+                    context.read<ImageBloc>().add(ProcessImages(exportOptions: options));
                   }
                 } : null,
                 style: ElevatedButton.styleFrom(
@@ -143,7 +187,7 @@ class _ActionBar extends StatelessWidget {
                   state.isProcessing 
                     ? 'Processing...' 
                     : state.selectedLut != null 
-                      ? 'Process ${state.images.length} Image${state.images.length > 1 ? 's' : ''}' 
+                      ? 'Process ${state.stagedImages.length} Image${state.stagedImages.length > 1 ? 's' : ''}' 
                       : 'Select a LUT',
                   style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                 ),

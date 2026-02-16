@@ -17,7 +17,7 @@ class ImagePreviewArea extends StatelessWidget {
   Widget build(BuildContext context) {
     return BlocBuilder<ImageBloc, ImageState>(
       builder: (context, state) {
-        if (state.activeImage == null) {
+        if (state.activeStagedImage == null) {
           return Center(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -29,24 +29,41 @@ class ImagePreviewArea extends StatelessWidget {
                   style: TextStyle(color: Colors.white.withOpacity(0.3), fontSize: 18),
                 ),
                 const SizedBox(height: 24),
-                ElevatedButton.icon(
-                  onPressed: () async {
-                    final result = await FilePicker.platform.pickFiles(
-                      allowMultiple: true,
-                      type: FileType.custom,
-                      allowedExtensions: ['jpg', 'jpeg', 'png', 'orf', 'cr2', 'nef', 'arw', 'dng', 'raf', 'rw2', 'pef', 'srw', 'kdc', 'mrw', 'dcr'],
-                    );
-                    if (result != null && context.mounted) {
-                      final paths = result.paths.whereType<String>().toList();
-                      context.read<ImageBloc>().add(SelectFiles(paths));
-                    }
-                  },
-                  icon: const Icon(Icons.add),
-                  label: const Text('Add Files'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Theme.of(context).primaryColor,
-                    foregroundColor: Colors.white,
-                  ),
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    ElevatedButton.icon(
+                      onPressed: () {
+                        DefaultTabController.of(context).animateTo(0);
+                      },
+                      icon: const Icon(Icons.grid_view_rounded),
+                      label: const Text('Go to Browser'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.white.withOpacity(0.05),
+                        foregroundColor: Colors.white,
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    ElevatedButton.icon(
+                      onPressed: () async {
+                        final result = await FilePicker.platform.pickFiles(
+                          allowMultiple: true,
+                          type: FileType.custom,
+                          allowedExtensions: ['jpg', 'jpeg', 'png', 'orf', 'cr2', 'nef', 'arw', 'dng', 'raf', 'rw2', 'pef', 'srw', 'kdc', 'mrw', 'dcr'],
+                        );
+                        if (result != null && context.mounted) {
+                          final paths = result.paths.whereType<String>().toList();
+                          context.read<ImageBloc>().add(SelectFiles(paths));
+                        }
+                      },
+                      icon: const Icon(Icons.add),
+                      label: const Text('Add Files'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Theme.of(context).primaryColor,
+                        foregroundColor: Colors.white,
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
@@ -61,7 +78,7 @@ class ImagePreviewArea extends StatelessWidget {
               Expanded(
                 child: _PreviewBox(
                   label: 'Original',
-                  child: SmartImage(imagePath: state.activeImage!.path, fit: BoxFit.contain),
+                  child: SmartImage(imagePath: state.activeStagedImage!.path, fit: BoxFit.contain),
                 ),
               ),
               const SizedBox(width: 40),
@@ -72,7 +89,7 @@ class ImagePreviewArea extends StatelessWidget {
                   child: state.selectedLut == null 
                     ? const Center(child: Text('Select a LUT to preview'))
                     : LutShaderPreview(
-                        imagePath: state.activeImage!.path,
+                        imagePath: state.activeStagedImage!.path,
                         lutPath: state.selectedLut!.path,
                       ),
                 ),

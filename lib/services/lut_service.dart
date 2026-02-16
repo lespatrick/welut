@@ -12,6 +12,8 @@ class LutService {
     required File sourceImage,
     required File lutImage,
     required String outputPath,
+    int? maxDimension,
+    int quality = 90,
   }) async {
     // 1. Load resources
     final sourceBytes = await sourceImage.readAsBytes();
@@ -25,12 +27,27 @@ class LutService {
     final frameLut = await codecLut.getNextFrame();
     final lutImg = frameLut.image;
 
+    // Calculate dimensions
+    double width = srcImg.width.toDouble();
+    double height = srcImg.height.toDouble();
+
+    if (maxDimension != null) {
+      if (width > height) {
+        if (width > maxDimension) {
+          height = (height * maxDimension) / width;
+          width = maxDimension.toDouble();
+        }
+      } else {
+        if (height > maxDimension) {
+          width = (width * maxDimension) / height;
+          height = maxDimension.toDouble();
+        }
+      }
+    }
+
     // 2. Load and set up shader
     final program = await ui.FragmentProgram.fromAsset('shaders/lut.frag');
     final shader = program.fragmentShader();
-
-    final double width = srcImg.width.toDouble();
-    final double height = srcImg.height.toDouble();
 
     // Uniforms: uSize(0,1), uLutLevel(2), uLutWidth(3)
     shader.setFloat(0, width);
@@ -51,7 +68,7 @@ class LutService {
     canvas.drawRect(ui.Rect.fromLTWH(0, 0, width, height), paint);
     
     final picture = recorder.endRecording();
-    final outputImg = await picture.toImage(srcImg.width, srcImg.height);
+    final outputImg = await picture.toImage(width.toInt(), height.toInt());
     
     // 4. Convert to bytes and save (using Isolate for encoding)
     final byteData = await outputImg.toByteData(format: ui.ImageByteFormat.rawRgba);
@@ -62,6 +79,7 @@ class LutService {
       width: outputImg.width,
       height: outputImg.height,
       outputPath: outputPath,
+      quality: quality,
     ));
 
     return File(outputPath);
@@ -77,7 +95,7 @@ class LutService {
       numChannels: 4,
     );
     
-    final encoded = img.encodeJpg(image, quality: 90);
+    final encoded = img.encodeJpg(image, quality: params.quality);
     await File(params.outputPath).writeAsBytes(encoded);
   }
 
@@ -125,11 +143,13 @@ class _EncodeParams {
   final int width;
   final int height;
   final String outputPath;
+  final int quality;
 
   _EncodeParams({
     required this.bytes,
     required this.width,
     required this.height,
     required this.outputPath,
+    required this.quality,
   });
 }

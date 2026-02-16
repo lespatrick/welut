@@ -13,7 +13,7 @@ class ProcessingOverlay extends StatelessWidget {
         if (!state.isProcessing) return const SizedBox.shrink();
 
         final completedCount = state.status.where((s) => s.startsWith('✅')).length;
-        final totalCount = state.images.length;
+        final totalCount = state.stagedImages.length;
         final progress = totalCount > 0 ? completedCount / totalCount : 0.0;
 
         return Container(

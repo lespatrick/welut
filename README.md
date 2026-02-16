@@ -4,16 +4,21 @@
 
 ## Features
 
-- **Blazing Fast Previews**: instanly preview LUTs on your high-resolution RAW or JPEG images.
-- **Support for Multiple Formats**: Works with `.png` Hald CLUTs.
-- **Platform Optimized**: Uses native macOS APIs (sips) for speed and Sharp for other platforms.
-- **Clean UI**: A minimalist and intuitive interface built with React and Electron.
+- **Two-Mode Interface**: 
+  - **Browser Mode**: Easily navigate folders, preview images in a grid, and organize your library.
+  - **LUT Mode**: Apply professional film simulation LUTs with real-time GPU-accelerated previews.
+- **Batch Export**: Select multiple images from the browser and export them all at once.
+- **Advanced Export Options**: Downscale images by limiting max dimensions and control JPEG compression quality.
+- **XMP Rating System**: Store image ratings (0-5 stars) in standard XMP sidecar files, compatible with Lightroom and other industry tools.
+- **Fast Filtering**: Filter your view by rating to focus on your best shots.
+- **Blazing Fast Previews**: Instantly preview LUTs on high-resolution RAW or JPEG images using GPU fragment shaders.
+- **RAW Support**: Native support for most RAW formats (ORF, CR2, NEF, ARW, DNG, etc.) via macOS `sips`.
 
 ## Tech Stack
 
-- **Frontend**: React, TypeScript, Vite
-- **Backend**: Electron, Node.js
-- **Image Processing**: Native macOS `sips`, Sharp, dcraw
+- **Framework**: Flutter (Dart)
+- **Image Processing**: GPU-accelerated Fragment Shaders (GLSL), `image` package
+- **Native Integration**: macOS `sips` for RAW conversion
 
 ## Development
 
