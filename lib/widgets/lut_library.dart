@@ -13,7 +13,7 @@ class LutLibrary extends StatefulWidget {
 }
 
 class _LutLibraryState extends State<LutLibrary> {
-  final List<String> _categories = ['Agfa', 'Fuji', 'Kodak', 'Lomography', 'Polaroid'];
+  final List<String> _categories = ['Agfa', 'CreativePack-1', 'Fuji', 'Kodak', 'Lomography', 'Polaroid'];
   Map<String, List<LutItem>> _categoryLuts = {};
   bool _isLoading = true;
 
@@ -24,6 +24,7 @@ class _LutLibraryState extends State<LutLibrary> {
   }
 
   Future<void> _loadAllLuts() async {
+    // Use a relative path from the project root
     final rootPath = 'resources/luts';
     Map<String, List<LutItem>> grouped = {};
 
