@@ -8,6 +8,7 @@ import 'dart:ui' as ui;
 import 'dart:math' as math;
 import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:file_picker/file_picker.dart';
+import 'smart_image.dart';
 
 class ImagePreviewArea extends StatelessWidget {
   const ImagePreviewArea({super.key});
@@ -33,7 +34,7 @@ class ImagePreviewArea extends StatelessWidget {
                     final result = await FilePicker.platform.pickFiles(
                       allowMultiple: true,
                       type: FileType.custom,
-                      allowedExtensions: ['jpg', 'jpeg', 'png', 'orf', 'cr2', 'nef', 'arw', 'dng'],
+                      allowedExtensions: ['jpg', 'jpeg', 'png', 'orf', 'cr2', 'nef', 'arw', 'dng', 'raf', 'rw2', 'pef', 'srw', 'kdc', 'mrw', 'dcr'],
                     );
                     if (result != null && context.mounted) {
                       final paths = result.paths.whereType<String>().toList();
@@ -60,7 +61,7 @@ class ImagePreviewArea extends StatelessWidget {
               Expanded(
                 child: _PreviewBox(
                   label: 'Original',
-                  child: Image.file(File(state.activeImage!.path), fit: BoxFit.contain),
+                  child: SmartImage(imagePath: state.activeImage!.path, fit: BoxFit.contain),
                 ),
               ),
               const SizedBox(width: 40),
@@ -165,7 +166,8 @@ class _LutShaderPreviewState extends State<LutShaderPreview> {
       
       String imgPath = widget.imagePath;
       final ext = p.extension(imgPath).toLowerCase();
-      if (['.orf', '.cr2', '.nef', '.arw', '.dng'].contains(ext)) {
+      final rawExtensions = {'.orf', '.cr2', '.nef', '.arw', '.dng', '.raf', '.rw2', '.pef', '.srw', '.kdc', '.mrw', '.dcr'};
+      if (rawExtensions.contains(ext)) {
         // Use a preview-optimized JPEG for RAW
         final tempFile = await LutService.convertRawToJpg(imgPath);
         imgPath = tempFile.path;

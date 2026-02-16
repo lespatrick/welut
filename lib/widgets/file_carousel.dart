@@ -6,6 +6,7 @@ import '../models/models.dart';
 import 'dart:io';
 import 'dart:ui' as ui;
 import 'package:path/path.dart' as p;
+import 'smart_image.dart';
 
 class FileCarousel extends StatelessWidget {
   const FileCarousel({super.key});
@@ -38,7 +39,7 @@ class FileCarousel extends StatelessWidget {
                         final result = await FilePicker.platform.pickFiles(
                           allowMultiple: true,
                           type: FileType.custom,
-                          allowedExtensions: ['jpg', 'jpeg', 'png', 'orf', 'cr2', 'nef', 'arw', 'dng'],
+                          allowedExtensions: ['jpg', 'jpeg', 'png', 'orf', 'cr2', 'nef', 'arw', 'dng', 'raf', 'rw2', 'pef', 'srw', 'kdc', 'mrw', 'dcr'],
                         );
                         if (result != null && context.mounted) {
                           final paths = result.paths.whereType<String>().toList();
@@ -117,7 +118,7 @@ class _ThumbnailAction extends StatelessWidget {
           child: Stack(
             fit: StackFit.expand,
             children: [
-              Image.file(File(img.path), fit: BoxFit.cover),
+              SmartImage(imagePath: img.path, fit: BoxFit.cover),
               if (isActive)
                 Container(color: Theme.of(context).primaryColor.withOpacity(0.2)),
               Positioned(

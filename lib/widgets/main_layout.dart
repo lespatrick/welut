@@ -5,6 +5,8 @@ import 'lut_library.dart';
 import 'image_preview_area.dart';
 import 'file_carousel.dart';
 import 'processing_overlay.dart';
+import 'package:file_picker/file_picker.dart';
+import 'package:path/path.dart' as p;
 
 class MainLayout extends StatelessWidget {
   const MainLayout({super.key});
@@ -65,14 +67,75 @@ class _ActionBar extends StatelessWidget {
             border: Border(top: BorderSide(color: Colors.white.withOpacity(0.05))),
           ),
           child: Row(
-            mainAxisAlignment: MainAxisAlignment.end,
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
+              // Output Directory Info
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      'OUTPUT DIRECTORY',
+                      style: TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white.withOpacity(0.4),
+                        letterSpacing: 1.2,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    GestureDetector(
+                      onTap: () async {
+                        final path = await FilePicker.platform.getDirectoryPath();
+                        if (path != null && context.mounted) {
+                          context.read<ImageBloc>().add(SetOutputDirectory(path));
+                        }
+                      },
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.folder_open_rounded,
+                            size: 16,
+                            color: Theme.of(context).primaryColor.withOpacity(0.7),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              state.outputDirectory ?? 'Not selected (Click to choose)',
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: state.outputDirectory != null 
+                                  ? Colors.white.withOpacity(0.9) 
+                                  : Theme.of(context).primaryColor.withOpacity(0.7),
+                                fontWeight: state.outputDirectory != null ? FontWeight.w500 : FontWeight.bold,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 24),
               ElevatedButton(
-                onPressed: canProcess ? () => context.read<ImageBloc>().add(ProcessImages()) : null,
+                onPressed: canProcess ? () async {
+                  String? path = state.outputDirectory;
+                  if (path == null) {
+                    path = await FilePicker.platform.getDirectoryPath();
+                    if (path != null && context.mounted) {
+                      context.read<ImageBloc>().add(ProcessImages(outputDirectory: path));
+                    }
+                  } else {
+                    context.read<ImageBloc>().add(ProcessImages());
+                  }
+                } : null,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Theme.of(context).primaryColor,
                   foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 20),
+                  padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 20),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   elevation: 0,
                 ),
@@ -80,7 +143,7 @@ class _ActionBar extends StatelessWidget {
                   state.isProcessing 
                     ? 'Processing...' 
                     : state.selectedLut != null 
-                      ? 'Apply ${state.selectedLut!.name}' 
+                      ? 'Process ${state.images.length} Image${state.images.length > 1 ? 's' : ''}' 
                       : 'Select a LUT',
                   style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                 ),
