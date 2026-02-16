@@ -9,15 +9,32 @@ import 'browser_view.dart';
 import 'export_dialog.dart';
 import '../models/models.dart';
 import 'package:file_picker/file_picker.dart';
-import 'package:path/path.dart' as p;
 
 class MainLayout extends StatelessWidget {
   const MainLayout({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return DefaultTabController(
-      length: 2,
+    return PlatformMenuBar(
+      menus: [
+        PlatformMenu(
+          label: 'Help',
+          menus: [
+            PlatformMenuItem(
+              label: 'Licenses',
+              onSelected: () {
+                showLicensePage(
+                  context: context,
+                  applicationName: 'WebLut',
+                  applicationVersion: '1.0.0',
+                );
+              },
+            ),
+          ],
+        ),
+      ],
+      child: DefaultTabController(
+        length: 2,
       child: Scaffold(
         appBar: PreferredSize(
           preferredSize: const Size.fromHeight(48),
@@ -41,20 +58,20 @@ class MainLayout extends StatelessWidget {
             ),
           ),
         ),
-        body: Stack(
+        body: const Stack(
           children: [
-            const TabBarView(
+            TabBarView(
               children: [
                 BrowserView(),
                 _LutModeLayout(),
               ],
             ),
             // Processing Overlay
-            const ProcessingOverlay(),
+            ProcessingOverlay(),
           ],
         ),
       ),
-    );
+    ));
   }
 }
 
