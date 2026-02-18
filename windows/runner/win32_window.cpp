@@ -207,6 +207,14 @@ Win32Window::MessageHandler(HWND hwnd,
       return 0;
     }
 
+    case WM_GETMINMAXINFO: {
+      UINT dpi = GetDpiForWindow(hwnd);
+      double scale_factor = dpi / 96.0;
+      auto* minMaxInfo = reinterpret_cast<MINMAXINFO*>(lparam);
+      minMaxInfo->ptMinTrackSize.x = static_cast<LONG>(1200 * scale_factor);
+      return 0;
+    }
+
     case WM_ACTIVATE:
       if (child_content_ != nullptr) {
         SetFocus(child_content_);

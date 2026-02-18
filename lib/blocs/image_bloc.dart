@@ -353,18 +353,15 @@ class ImageBloc extends Bloc<ImageEvent, ImageState> {
       final List<ImageItem> stagedImages = List.from(state.stagedImages);
       
       if (event.select) {
-        for (final browserImg in state.browserImages) {
+        for (final browserImg in state.filteredBrowserImages) {
           if (!stagedImages.any((img) => img.path == browserImg.path)) {
             stagedImages.add(browserImg.copyWith(isSelected: true));
           }
         }
       } else {
-        // Clear only those that are currently in browserImages? 
-        // Or clear everything? "Clear" usually means everything in LUT mode.
-        // But in Browser mode "Clear" usually means deselect current folder images.
-        // Let's go with removing browser images from staged for now.
-        final browserPaths = state.browserImages.map((img) => img.path).toSet();
-        stagedImages.removeWhere((img) => browserPaths.contains(img.path));
+        // Remove only the currently visible (filtered) images from staged.
+        final filteredPaths = state.filteredBrowserImages.map((img) => img.path).toSet();
+        stagedImages.removeWhere((img) => filteredPaths.contains(img.path));
       }
       
       emit(state.copyWith(stagedImages: stagedImages));
